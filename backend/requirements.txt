@@ -1,0 +1,6 @@
+﻿fastapi==0.116.1
+uvicorn[standard]==0.35.0
+numpy==2.3.2
+networkx==3.5
+shapely==2.1.1
+pyproj==3.7.2
