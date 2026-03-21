@@ -463,19 +463,50 @@ def _distance2(a: tuple[float, float], b: tuple[float, float]) -> float:
     return (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2
 
 
+def _edge_latlon_segment(a: tuple[float, float], b: tuple[float, float], attrs: dict[str, Any]) -> list[tuple[float, float]]:
+    geom = attrs.get("geometry")
+    direct = [m_to_latlon(*a), m_to_latlon(*b)]
+
+    if geom is None or not hasattr(geom, "coords"):
+        return direct
+
+    try:
+        metric_coords = [(float(x), float(y)) for x, y in geom.coords]
+    except Exception:
+        return direct
+
+    if len(metric_coords) < 2:
+        return direct
+
+    start = metric_coords[0]
+    end = metric_coords[-1]
+
+    # Edge geometry must actually terminate at edge nodes. If it does not,
+    # the stored geometry is unsafe for polyline stitching and creates visual loops.
+    start_to_a = _distance2(start, a)
+    start_to_b = _distance2(start, b)
+    end_to_a = _distance2(end, a)
+    end_to_b = _distance2(end, b)
+
+    threshold2 = 25.0 ** 2
+    forward_ok = start_to_a <= threshold2 and end_to_b <= threshold2
+    reverse_ok = start_to_b <= threshold2 and end_to_a <= threshold2
+
+    if reverse_ok and not forward_ok:
+        metric_coords = list(reversed(metric_coords))
+    elif not forward_ok and not reverse_ok:
+        return direct
+
+    return [m_to_latlon(x, y) for x, y in metric_coords]
+
+
 def build_polyline_latlon_from_path(graph: nx.Graph, node_list: list[tuple[float, float]]) -> list[list[float]]:
     coords: list[tuple[float, float]] = []
     first = True
 
     for a, b in zip(node_list[:-1], node_list[1:]):
         edge = graph[a][b]
-        geom = edge.get("geometry")
-
-        if geom is not None:
-            xs, ys = zip(*list(geom.coords))
-            seg = [m_to_latlon(float(x), float(y)) for x, y in zip(xs, ys)]
-        else:
-            seg = [m_to_latlon(*a), m_to_latlon(*b)]
+        seg = _edge_latlon_segment(a, b, edge)
 
         if not seg:
             continue
