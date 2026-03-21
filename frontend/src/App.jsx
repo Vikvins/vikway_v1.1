@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import L from "leaflet";
 import {
   CircleMarker,
   MapContainer,
@@ -61,6 +62,64 @@ function formatGreen(value) {
   return `${percent.toFixed(2)}%`;
 }
 
+function ResultsSection({ routes }) {
+  return (
+    <>
+      <div className="section-header">
+        <h2>Найденные маршруты</h2>
+        {routes.length > 0 ? <span className="section-badge">{routes.length}</span> : null}
+      </div>
+      {routes.length > 0 ? (
+        <div className="routes-list routes-list-sidebar">
+          {routes.map((route) => (
+            <article key={route.id} className={route.selected ? "route-card selected" : "route-card"}>
+              <h3>{route.label}</h3>
+              <p>Длина: {formatMeters(route.length_m)}</p>
+              <p>Время: {formatMinutes(route.eta_min)}</p>
+              <p>Шум: {formatNoise(route.avg_noise)}</p>
+              <p>Озеленение: {formatGreen(route.avg_green)}</p>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <p className="section-empty">
+          Постройте маршрут, чтобы сравнить варианты по длине, шуму и озеленению.
+        </p>
+      )}
+    </>
+  );
+}
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+    return window.matchMedia("(max-width: 720px)").matches;
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    const media = window.matchMedia("(max-width: 720px)");
+    const onChange = (event) => setIsMobile(event.matches);
+
+    setIsMobile(media.matches);
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+
+  return isMobile;
+}
+
+function stopRouteEvent(event) {
+  if (event?.originalEvent) {
+    L.DomEvent.stop(event.originalEvent);
+  }
+}
+
 export default function App() {
   const [meta, setMeta] = useState(null);
   const [start, setStart] = useState(null);
@@ -72,6 +131,8 @@ export default function App() {
   const [snapped, setSnapped] = useState({ start: null, end: null });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const isMobile = useIsMobile();
+  const pendingScrollTopRef = useRef(null);
 
   useEffect(() => {
     fetchMeta()
@@ -82,6 +143,21 @@ export default function App() {
         setError(err.message);
       });
   }, []);
+
+  useEffect(() => {
+    if (loading || pendingScrollTopRef.current === null || typeof window === "undefined") {
+      return;
+    }
+
+    const scrollTop = pendingScrollTopRef.current;
+    pendingScrollTopRef.current = null;
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: scrollTop, behavior: "auto" });
+      });
+    });
+  }, [loading, routes, snapped]);
 
   const center = useMemo(() => {
     if (!meta) return [59.4, 56.8];
@@ -116,6 +192,10 @@ export default function App() {
     if (!start || !end) {
       setError("Выберите точки старта и финиша на карте.");
       return;
+    }
+
+    if (typeof window !== "undefined") {
+      pendingScrollTopRef.current = window.scrollY;
     }
 
     setLoading(true);
@@ -211,26 +291,8 @@ export default function App() {
 
         {error && <p className="error">{error}</p>}
 
-        <section className="sidebar-results">
-          <div className="section-header">
-            <h2>Найденные маршруты</h2>
-            {routes.length > 0 ? <span className="section-badge">{routes.length}</span> : null}
-          </div>
-          {routes.length > 0 ? (
-            <div className="routes-list routes-list-sidebar">
-              {routes.map((route) => (
-                <article key={route.id} className={route.selected ? "route-card selected" : "route-card"}>
-                  <h3>{route.label}</h3>
-                  <p>Длина: {formatMeters(route.length_m)}</p>
-                  <p>Время: {formatMinutes(route.eta_min)}</p>
-                  <p>Шум: {formatNoise(route.avg_noise)}</p>
-                  <p>Озеленение: {formatGreen(route.avg_green)}</p>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <p className="section-empty">Постройте маршрут, чтобы сравнить варианты по длине, шуму и озеленению.</p>
-          )}
+        <section className="sidebar-results desktop-results">
+          <ResultsSection routes={routes} />
         </section>
       </aside>
 
@@ -333,11 +395,29 @@ export default function App() {
                     weight: route.selected ? 6 : 4,
                     opacity: route.selected ? 1.0 : 0.9,
                   }}
+                  eventHandlers={{
+                    click: stopRouteEvent,
+                    mousedown: stopRouteEvent,
+                    touchstart: stopRouteEvent,
+                  }}
                 >
-                  <Tooltip>{route.label}</Tooltip>
+                  <Tooltip
+                    permanent={isMobile}
+                    sticky={!isMobile}
+                    direction="center"
+                    className={isMobile ? "route-tooltip-mobile" : ""}
+                  >
+                    {route.label}
+                  </Tooltip>
                 </Polyline>
               ))}
             </MapContainer>
+          </div>
+        </section>
+
+        <section className="panel-section mobile-results">
+          <div className="mobile-results-inner">
+            <ResultsSection routes={routes} />
           </div>
         </section>
       </main>

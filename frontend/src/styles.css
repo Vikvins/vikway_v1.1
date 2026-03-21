@@ -117,6 +117,18 @@ button.ghost.active {
   gap: 10px;
 }
 
+.desktop-results {
+  display: flex;
+}
+
+.mobile-results {
+  display: none;
+}
+
+.mobile-results-inner {
+  padding: 14px;
+}
+
 .map-area {
   min-height: 100vh;
   padding: 16px;
@@ -216,6 +228,22 @@ button.ghost.active {
   width: 100%;
 }
 
+.route-tooltip-mobile {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #0b66c3;
+  border-radius: 999px;
+  box-shadow: 0 6px 18px rgba(14, 42, 66, 0.12);
+  color: #16324a;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
+.route-tooltip-mobile::before {
+  display: none;
+}
+
 @media (max-width: 1024px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -255,6 +283,14 @@ button.ghost.active {
 
   .routes-list {
     grid-template-columns: 1fr;
+  }
+
+  .desktop-results {
+    display: none;
+  }
+
+  .mobile-results {
+    display: block;
   }
 
   .route-card h3 {
