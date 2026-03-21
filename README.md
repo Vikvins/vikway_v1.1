@@ -1,94 +1,190 @@
-﻿# VikWay v1.1 (FastAPI + React)
+# VikWay v1.1
 
-Conservative copy of the baseline MVP with the same routing architecture and slightly stronger eco sensitivity.
+Стабильная зафиксированная версия сервиса пешеходной маршрутизации на `FastAPI + React + Leaflet`.
 
-## Structure
+Версия `v1.1` включает:
+- рабочую backend-логику маршрутизации;
+- локально и на сервере одинаковую загрузку графа и пространственных слоев;
+- production-конфигурацию для деплоя на Timeweb;
+- собранный фронтенд в `frontend/dist`.
 
-- `backend/` FastAPI API that loads `G.pkl` + `nodes.npy` and builds routes.
-- `frontend/` React + Vite app with Leaflet map.
-- `backend/data/export/` bundled data needed for deployed routing.
+## Состав проекта
 
-## Reused logic
+- `backend/` — API на FastAPI.
+- `frontend/` — интерфейс на React + Vite.
+- `backend/data/export/` — данные маршрутизации:
+  - `G.pkl`
+  - `nodes.npy`
+  - `green.pkl`
+  - `rail.pkl`
+- `Dockerfile` — сборка контейнера для деплоя.
 
-- Nearest-node snapping from point to graph.
-- Weighted shortest paths with `networkx.shortest_path`.
-- Modes backed by existing graph weight keys (`w_short`, `w_quiet`, `w_green`, `w_accessible`).
-- Polyline reconstruction from edge geometry.
-- Route length and ETA calculation.
+## Что делает сервис
 
-## Backend setup
+Сервис строит пешеходные маршруты между двумя точками и поддерживает режимы:
+- `Кратчайший`
+- `Тихий`
+- `Зеленый`
+- `Сбалансированный`
 
-1. Create and activate virtual environment.
-2. Install dependencies:
+При включенной опции альтернатив сервис пытается вернуть несколько различающихся маршрутов, если такие варианты действительно существуют в графе.
+
+## Требования
+
+- Python `3.11`
+- Node.js `18+`
+- npm
+
+## Локальный запуск
+
+### 1. Запуск backend
+
+Откройте PowerShell в каталоге:
 
 ```powershell
-cd backend
+cd "C:\Users\chekalina\Documents\New project\vikway_v1.1_repo\backend"
+```
+
+Создайте виртуальное окружение:
+
+```powershell
+py -3.11 -m venv .venv
+```
+
+Активируйте его:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+Установите зависимости:
+
+```powershell
 pip install -r requirements.txt
 ```
 
-3. Optional: set export directory explicitly (if autodetect fails):
+При необходимости явно задайте путь к данным:
 
 ```powershell
-$env:VIKWAY_EXPORT_DIR = "C:\Users\chekalina\Documents\New project\vikway\export"
+$env:VIKWAY_EXPORT_DIR="C:\Users\chekalina\Documents\New project\vikway_v1.1_repo\backend\data\export"
 ```
 
-4. Run API:
+Запустите API:
 
 ```powershell
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
 ```
 
-## Frontend setup
+Проверка:
 
-1. Install dependencies:
+- `http://127.0.0.1:8001/api/health`
+- `http://127.0.0.1:8001/api/meta`
+
+### 2. Запуск frontend
+
+Откройте второй PowerShell в каталоге:
 
 ```powershell
-cd frontend
+cd "C:\Users\chekalina\Documents\New project\vikway_v1.1_repo\frontend"
+```
+
+Установите зависимости:
+
+```powershell
 npm install
 ```
 
-2. Copy env file and run dev server:
+Создайте файл `.env` в каталоге `frontend`:
+
+```env
+VITE_API_BASE_URL=http://127.0.0.1:8001
+```
+
+Запустите dev-сервер:
 
 ```powershell
-copy .env.example .env
 npm run dev -- --host 127.0.0.1 --port 5175 --strictPort
 ```
 
-By default frontend expects API on `http://127.0.0.1:8001` in local development.
+Откройте в браузере:
 
-## Production build
+```text
+http://127.0.0.1:5175
+```
 
-The production frontend is built into `frontend/dist` and served by FastAPI from the same origin.
+## Production-сборка frontend
 
-To rebuild it locally:
+Если нужно пересобрать production-фронтенд:
 
 ```powershell
-cd frontend
+cd "C:\Users\chekalina\Documents\New project\vikway_v1.1_repo\frontend"
 npm run build
 ```
 
-## Render deployment
+После сборки статические файлы будут лежать в:
 
-This repo includes `render.yaml` at the repository root.
+```text
+frontend/dist
+```
 
-Expected flow:
-1. Push the repository to GitHub.
-2. In Render, create a Blueprint or Web Service from that GitHub repo.
-3. Render will use:
-   - `rootDir: vikway_web_mvp_ludicrous_goose_v2/backend`
-   - `buildCommand: pip install -r requirements.txt`
-   - `startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-4. Health check path: `/api/health`
+Они автоматически раздаются FastAPI из того же контейнера.
 
-Because the frontend is already bundled and the routing data is stored inside `backend/data/export`, no extra storage or Node build step is required on Render.
+## Деплой на Timeweb
 
-## API endpoints
+### Настройки приложения
 
-- `GET /api/health`
-- `GET /api/meta`
-- `POST /api/routes`
+- Тип: `Dockerfile`
+- Репозиторий: этот репозиторий
+- Путь до директории проекта: пусто
+- Путь проверки состояния: `/api/health`
 
-Example request:
+### Переменная окружения
+
+Обязательно задайте переменную:
+
+- имя: `VIKWAY_EXPORT_DIR`
+- значение: `/srv/backend/data/export`
+
+Важно:
+- значением должна быть только строка пути;
+- нельзя указывать значение в виде `VIKWAY_EXPORT_DIR=/srv/backend/data/export`.
+
+### Что важно для production
+
+Для корректной загрузки пространственных слоев в контейнере нужны:
+- `pandas`
+- `geopandas`
+
+Без них сервис запускается, но:
+- не загружаются `green.pkl` и `rail.pkl`;
+- деградируют метрики шума и озеленения;
+- маршруты могут схлопываться в один.
+
+В `v1.1` это уже исправлено в `backend/requirements.txt`.
+
+## API
+
+### `GET /api/health`
+
+Проверка доступности сервиса.
+
+Пример ответа:
+
+```json
+{
+  "status": "ok"
+}
+```
+
+### `GET /api/meta`
+
+Возвращает доступные режимы и метаданные сервиса.
+
+### `POST /api/routes`
+
+Строит маршрут между двумя точками.
+
+Пример запроса:
 
 ```json
 {
@@ -99,8 +195,50 @@ Example request:
 }
 ```
 
-## Notes
+## Отладочный endpoint
 
-- `balanced` mode maps to available balanced-like weight key in this order: `w_balanced_v11`, `w_balanced`, `w_accessible`, `weight`, `w_short`.
-- Proxy metrics (`avg_noise`, `avg_green`) are best-effort and depend on available edge attributes in your graph.
-- No auth, DB, Docker, or enterprise layers are added by design.
+В проекте оставлен служебный endpoint:
+
+- `GET /api/debug/runtime`
+
+Он нужен для проверки production-окружения:
+- какой `export_dir` реально выбран;
+- существуют ли `G.pkl`, `green.pkl`, `rail.pkl`;
+- загрузились ли `green` и `rail` spatial-слои;
+- доступны ли `pandas` и `geopandas`.
+
+Если сервис на сервере начинает вести себя не так, как локально, первым делом нужно проверить именно этот endpoint.
+
+## Структура маршрутизации
+
+Сервис использует подготовленный граф и уже существующие ключи весов на ребрах графа, включая:
+
+- `w_short`
+- `w_quiet`
+- `w_green`
+- `w_accessible`
+- `w_balanced`
+- `w_balanced_v11`
+- `w_quiet_v11`
+- `w_green_v11`
+
+Также используются производные атрибуты:
+
+- `length_m`
+- `noise_proxy_db`
+- `noise_norm`
+- `green_score`
+
+## Текущая зафиксированная версия
+
+- backend API version: `1.1.0`
+- runtime service version: `vikway-v1.1.0`
+
+## Примечания
+
+- Если локально сервис работает правильно, а на сервере нет, нужно сравнивать не только код, но и runtime-окружение.
+- Для Timeweb критично, чтобы контейнер реально был собран из актуального commit и содержал все зависимости из `backend/requirements.txt`.
+- После деплоя полезно проверить:
+  - `/api/health`
+  - `/api/debug/runtime`
+

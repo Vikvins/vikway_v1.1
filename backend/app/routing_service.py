@@ -268,7 +268,7 @@ def get_runtime_debug() -> dict[str, Any]:
     rail_path = export_dir / "rail.pkl"
 
     return {
-        "service_version": "vikway-v1.1-debug-1",
+        "service_version": "vikway-v1.1.0",
         "cwd": os.getcwd(),
         "module_file": str(Path(__file__).resolve()),
         "export_dir": str(export_dir),

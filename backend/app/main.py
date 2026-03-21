@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from .routing_service import build_routes, get_meta, get_runtime_debug, load_artifacts
 from .schemas import MetaResponse, RouteRequest, RouteResponse
 
-app = FastAPI(title="VikWay MVP API", version="0.1.0")
+app = FastAPI(title="VikWay API", version="1.1.0")
 
 app.add_middleware(
     CORSMiddleware,
