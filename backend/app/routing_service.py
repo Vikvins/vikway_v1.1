@@ -114,6 +114,8 @@ def _candidate_export_dirs() -> list[Path]:
 def resolve_export_dir() -> Path:
     env_path = os.getenv("VIKWAY_EXPORT_DIR")
     if env_path:
+        if "=" in env_path and env_path.split("=", 1)[0].strip() == "VIKWAY_EXPORT_DIR":
+            env_path = env_path.split("=", 1)[1].strip()
         path = Path(env_path).expanduser().resolve()
         if (path / "G.pkl").exists() and (path / "nodes.npy").exists():
             return path
