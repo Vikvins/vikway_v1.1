@@ -90,6 +90,36 @@ function ResultsSection({ routes }) {
   );
 }
 
+function MobileRouteSummary({ routes }) {
+  if (routes.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="panel-section mobile-route-summary">
+      <div className="mobile-results-inner">
+        <div className="section-header">
+          <h2>Маршруты и характеристики</h2>
+          <span className="section-badge">{routes.length}</span>
+        </div>
+        <div className="mobile-summary-list">
+          {routes.map((route) => (
+            <article key={route.id} className={route.selected ? "mobile-summary-card selected" : "mobile-summary-card"}>
+              <h3>{route.label}</h3>
+              <div className="mobile-summary-metrics">
+                <span>{formatMeters(route.length_m)}</span>
+                <span>{formatMinutes(route.eta_min)}</span>
+                <span>{formatNoise(route.avg_noise)}</span>
+                <span>{formatGreen(route.avg_green)}</span>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === "undefined") {
@@ -297,6 +327,8 @@ export default function App() {
       </aside>
 
       <main className="map-area">
+        <MobileRouteSummary routes={routes} />
+
         <section className="panel-section map-section">
           <div className="section-header">
             <h2>Карта маршрутов</h2>

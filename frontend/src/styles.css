@@ -129,6 +129,41 @@ button.ghost.active {
   padding: 14px;
 }
 
+.mobile-route-summary {
+  display: none;
+}
+
+.mobile-summary-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.mobile-summary-card {
+  border: 1px solid #d7e1ea;
+  border-radius: 14px;
+  padding: 12px;
+  background: #f9fcff;
+}
+
+.mobile-summary-card.selected {
+  border-color: #0b66c3;
+  background: #edf5ff;
+}
+
+.mobile-summary-card h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.mobile-summary-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 12px;
+  font-size: 13px;
+  color: #16324a;
+}
+
 .map-area {
   min-height: 100vh;
   padding: 16px;
@@ -287,6 +322,10 @@ button.ghost.active {
 
   .desktop-results {
     display: none;
+  }
+
+  .mobile-route-summary {
+    display: block;
   }
 
   .mobile-results {
