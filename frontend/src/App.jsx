@@ -62,13 +62,9 @@ function formatGreen(value) {
   return `${percent.toFixed(2)}%`;
 }
 
-function ResultsSection({ routes }) {
+function ResultsCards({ routes }) {
   return (
     <>
-      <div className="section-header">
-        <h2>Найденные маршруты</h2>
-        {routes.length > 0 ? <span className="section-badge">{routes.length}</span> : null}
-      </div>
       {routes.length > 0 ? (
         <div className="routes-list routes-list-sidebar">
           {routes.map((route) => (
@@ -90,32 +86,36 @@ function ResultsSection({ routes }) {
   );
 }
 
-function MobileRouteSummary({ routes }) {
-  if (routes.length === 0) {
-    return null;
-  }
-
+function DesktopResultsSection({ routes }) {
   return (
-    <section className="panel-section mobile-route-summary">
-      <div className="mobile-results-inner">
-        <div className="section-header">
-          <h2>Маршруты и характеристики</h2>
-          <span className="section-badge">{routes.length}</span>
-        </div>
-        <div className="mobile-summary-list">
-          {routes.map((route) => (
-            <article key={route.id} className={route.selected ? "mobile-summary-card selected" : "mobile-summary-card"}>
-              <h3>{route.label}</h3>
-              <div className="mobile-summary-metrics">
-                <span>{formatMeters(route.length_m)}</span>
-                <span>{formatMinutes(route.eta_min)}</span>
-                <span>{formatNoise(route.avg_noise)}</span>
-                <span>{formatGreen(route.avg_green)}</span>
-              </div>
-            </article>
-          ))}
-        </div>
+    <>
+      <div className="section-header">
+        <h2>Найденные маршруты</h2>
+        {routes.length > 0 ? <span className="section-badge">{routes.length}</span> : null}
       </div>
+      <ResultsCards routes={routes} />
+    </>
+  );
+}
+
+function MobileResultsSection({ routes, expanded, onToggle }) {
+  return (
+    <section className="panel-section mobile-results-panel">
+      <button type="button" className="mobile-results-toggle" onClick={onToggle}>
+        <span className="mobile-results-title">Найденные маршруты</span>
+        <span className="mobile-results-actions">
+          <span className="section-badge">{routes.length}</span>
+          <span className={expanded ? "mobile-chevron expanded" : "mobile-chevron"} aria-hidden="true">
+            ▾
+          </span>
+        </span>
+      </button>
+
+      {expanded ? (
+        <div className="mobile-results-body">
+          <ResultsCards routes={routes} />
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -161,6 +161,7 @@ export default function App() {
   const [snapped, setSnapped] = useState({ start: null, end: null });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [mobileResultsExpanded, setMobileResultsExpanded] = useState(true);
   const isMobile = useIsMobile();
   const pendingScrollTopRef = useRef(null);
 
@@ -239,6 +240,9 @@ export default function App() {
       });
       setRoutes(response.routes ?? []);
       setSnapped({ start: response.snapped_start, end: response.snapped_end });
+      if (isMobile) {
+        setMobileResultsExpanded(false);
+      }
     } catch (err) {
       setError(String(err.message || err));
       setRoutes([]);
@@ -255,6 +259,7 @@ export default function App() {
     setSnapped({ start: null, end: null });
     setError("");
     setPickTarget("start");
+    setMobileResultsExpanded(true);
   };
 
   return (
@@ -322,12 +327,18 @@ export default function App() {
         {error && <p className="error">{error}</p>}
 
         <section className="sidebar-results desktop-results">
-          <ResultsSection routes={routes} />
+          <DesktopResultsSection routes={routes} />
         </section>
       </aside>
 
       <main className="map-area">
-        <MobileRouteSummary routes={routes} />
+        {isMobile ? (
+          <MobileResultsSection
+            routes={routes}
+            expanded={mobileResultsExpanded}
+            onToggle={() => setMobileResultsExpanded((value) => !value)}
+          />
+        ) : null}
 
         <section className="panel-section map-section">
           <div className="section-header">
@@ -449,7 +460,7 @@ export default function App() {
 
         <section className="panel-section mobile-results">
           <div className="mobile-results-inner">
-            <ResultsSection routes={routes} />
+            <DesktopResultsSection routes={routes} />
           </div>
         </section>
       </main>
