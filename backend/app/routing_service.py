@@ -3,6 +3,8 @@
 import os
 import pickle
 import re
+import hashlib
+import importlib.util
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -235,6 +237,67 @@ def _load_spatial_index(export_dir: Path, file_name: str) -> SpatialIndex | None
         return SpatialIndex(tree=STRtree(geoms), geometries=tuple(geoms))
     except Exception:
         return None
+
+
+def _file_digest(path: Path) -> dict[str, Any]:
+    info: dict[str, Any] = {
+        "path": str(path),
+        "exists": path.exists(),
+    }
+    if not path.exists():
+        return info
+
+    info["size"] = path.stat().st_size
+    digest = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            digest.update(chunk)
+    info["sha256"] = digest.hexdigest()
+    return info
+
+
+def get_runtime_debug() -> dict[str, Any]:
+    export_dir = resolve_export_dir()
+    green_index = _load_spatial_index(export_dir, "green.pkl")
+    rail_index = _load_spatial_index(export_dir, "rail.pkl")
+    graph_path = export_dir / "G.pkl"
+    nodes_path = export_dir / "nodes.npy"
+    green_path = export_dir / "green.pkl"
+    rail_path = export_dir / "rail.pkl"
+
+    return {
+        "service_version": "vikway-v1.1-debug-1",
+        "cwd": os.getcwd(),
+        "module_file": str(Path(__file__).resolve()),
+        "export_dir": str(export_dir),
+        "env_export_dir": os.getenv("VIKWAY_EXPORT_DIR"),
+        "candidate_export_dirs": [str(path) for path in _candidate_export_dirs()],
+        "python": {
+            "version": os.sys.version,
+            "executable": os.sys.executable,
+        },
+        "imports": {
+            "numpy": np.__version__,
+            "networkx": nx.__version__,
+            "shapely": getattr(__import__("shapely"), "__version__", "unknown"),
+            "pyproj": getattr(__import__("pyproj"), "__version__", "unknown"),
+            "pandas_available": importlib.util.find_spec("pandas") is not None,
+            "geopandas_available": importlib.util.find_spec("geopandas") is not None,
+        },
+        "files": {
+            "G.pkl": _file_digest(graph_path),
+            "nodes.npy": _file_digest(nodes_path),
+            "green.pkl": _file_digest(green_path),
+            "rail.pkl": _file_digest(rail_path),
+        },
+        "spatial_indexes": {
+            "green_loaded": green_index is not None,
+            "green_geometries": len(green_index.geometries) if green_index is not None else 0,
+            "rail_loaded": rail_index is not None,
+            "rail_geometries": len(rail_index.geometries) if rail_index is not None else 0,
+        },
+        "graph_weight_keys": sorted(_available_weight_keys(load_artifacts().graph)),
+    }
 
 
 def _query_geometries(index: SpatialIndex, geometry: Any) -> list[Any]:

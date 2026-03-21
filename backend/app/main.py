@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from .routing_service import build_routes, get_meta, load_artifacts
+from .routing_service import build_routes, get_meta, get_runtime_debug, load_artifacts
 from .schemas import MetaResponse, RouteRequest, RouteResponse
 
 app = FastAPI(title="VikWay MVP API", version="0.1.0")
@@ -34,6 +34,14 @@ def health() -> dict[str, str]:
 def meta() -> MetaResponse:
     try:
         return get_meta()
+    except Exception as exc:  # pragma: no cover - defensive API wrapper
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/api/debug/runtime")
+def runtime_debug() -> dict:
+    try:
+        return get_runtime_debug()
     except Exception as exc:  # pragma: no cover - defensive API wrapper
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
