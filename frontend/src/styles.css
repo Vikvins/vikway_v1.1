@@ -36,15 +36,18 @@ body {
 
 .sidebar h1 {
   margin: 0;
-  font-size: 22px;
+  font-size: 28px;
+  font-weight: 800;
+  color: #10212e;
 }
 
 .subtitle {
   margin-top: 6px;
-  margin-bottom: 16px;
-  color: #4e6477;
-  font-size: 14px;
-  line-height: 1.35;
+  margin-bottom: 18px;
+  color: #10212e;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
 }
 
 .control-block {
@@ -52,6 +55,98 @@ body {
   flex-direction: column;
   gap: 8px;
   margin-bottom: 12px;
+}
+
+.entry-switch,
+.demo-scenarios {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.section-divider {
+  height: 1px;
+  margin: 2px 0 14px;
+  background: #d7e1ea;
+}
+
+.subsection-header {
+  margin-bottom: 12px;
+}
+
+.subsection-header h2 {
+  margin: 0 0 6px;
+  font-size: 17px;
+}
+
+.subsection-header p {
+  margin: 0;
+  color: #4e6477;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.entry-card,
+.scenario-card {
+  padding: 12px 14px;
+  border: 1px solid #c6d3df;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #16324a;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: left;
+}
+
+.entry-card strong,
+.scenario-card strong {
+  font-size: 15px;
+}
+
+.entry-card span,
+.scenario-card span {
+  color: #4e6477;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.entry-card.active,
+.scenario-card.active {
+  background: #edf5ff;
+  border-color: #0b66c3;
+}
+
+.scenario-card.contrast-routes.active {
+  background: #fff1f1;
+  border-color: #e53935;
+}
+
+.scenario-card.contrast-routes.active strong,
+.scenario-card.contrast-routes.active span {
+  color: #8f1d18;
+}
+
+.scenario-card.green-showcase.active {
+  background: #eef8ef;
+  border-color: #43a047;
+}
+
+.scenario-card.green-showcase.active strong,
+.scenario-card.green-showcase.active span {
+  color: #1f6b30;
+}
+
+.scenario-card.quiet-showcase.active {
+  background: #eef5ff;
+  border-color: #1e88e5;
+}
+
+.scenario-card.quiet-showcase.active strong,
+.scenario-card.quiet-showcase.active span {
+  color: #155b9f;
 }
 
 .control-block.inline {
@@ -108,6 +203,27 @@ button.ghost.active {
   color: #b42318;
   margin: 10px 0;
   font-size: 13px;
+}
+
+.demo-hint {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid #d7e1ea;
+  border-radius: 12px;
+  background: #f9fcff;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.demo-hint strong {
+  font-size: 14px;
+}
+
+.demo-hint span {
+  color: #4e6477;
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .sidebar-results {

@@ -21,6 +21,8 @@ from .schemas import LatLon, MetaResponse, Mode, RouteInfo, RouteRequest, RouteR
 CRS_WGS = 4326
 CRS_METRIC = 3857
 WALK_SPEED_KMH = 4.8
+SNAP_CANDIDATE_COUNT = 8
+SNAP_DISTANCE_PENALTY = 4.0
 
 MODE_LABELS: dict[Mode, str] = {
     "shortest": "Кратчайший",
@@ -450,6 +452,65 @@ def nearest_node(point_m: Point, nodes_arr: np.ndarray) -> tuple[float, float]:
     return float(nodes_arr[idx, 0]), float(nodes_arr[idx, 1])
 
 
+def nearest_k_nodes(
+    point_m: Point,
+    nodes_arr: np.ndarray,
+    k: int = SNAP_CANDIDATE_COUNT,
+) -> list[tuple[tuple[float, float], float]]:
+    x, y = point_m.x, point_m.y
+    d2 = (nodes_arr[:, 0] - x) ** 2 + (nodes_arr[:, 1] - y) ** 2
+    count = min(k, len(nodes_arr))
+    if count <= 0:
+        return []
+
+    idxs = np.argpartition(d2, count - 1)[:count]
+    idxs = idxs[np.argsort(d2[idxs])]
+
+    result: list[tuple[tuple[float, float], float]] = []
+    for idx in idxs:
+        node = (float(nodes_arr[idx, 0]), float(nodes_arr[idx, 1]))
+        result.append((node, float(d2[idx]) ** 0.5))
+    return result
+
+
+def choose_snap_nodes(
+    graph: nx.Graph,
+    nodes_arr: np.ndarray,
+    start: LatLon,
+    end: LatLon,
+    mode: Mode,
+) -> tuple[tuple[float, float], tuple[float, float]]:
+    start_point = latlon_to_point_m(start.lat, start.lon)
+    end_point = latlon_to_point_m(end.lat, end.lon)
+
+    start_candidates = nearest_k_nodes(start_point, nodes_arr)
+    end_candidates = nearest_k_nodes(end_point, nodes_arr)
+
+    primary_weight = _pick_weight_key(graph, mode)
+    fallback_weight = _pick_weight_key(graph, "shortest")
+    weight_key = primary_weight or fallback_weight
+
+    best_pair: tuple[tuple[float, float], tuple[float, float]] | None = None
+    best_score: float | None = None
+
+    for start_node, start_snap_dist in start_candidates:
+        for end_node, end_snap_dist in end_candidates:
+            try:
+                route_cost = float(nx.shortest_path_length(graph, start_node, end_node, weight=weight_key))
+            except (nx.NetworkXNoPath, nx.NodeNotFound):
+                continue
+
+            score = route_cost + SNAP_DISTANCE_PENALTY * (start_snap_dist + end_snap_dist)
+            if best_score is None or score < best_score:
+                best_score = score
+                best_pair = (start_node, end_node)
+
+    if best_pair is not None:
+        return best_pair
+
+    return nearest_node(start_point, nodes_arr), nearest_node(end_point, nodes_arr)
+
+
 def path_length_m(graph: nx.Graph, node_list: list[tuple[float, float]]) -> float:
     return float(sum(graph[a][b].get("length_m", 0.0) for a, b in zip(node_list[:-1], node_list[1:])))
 
@@ -670,8 +731,13 @@ def build_routes(request: RouteRequest) -> RouteResponse:
     graph = artifacts.graph
     nodes_arr = artifacts.nodes_arr
 
-    start_node = nearest_node(latlon_to_point_m(request.start.lat, request.start.lon), nodes_arr)
-    end_node = nearest_node(latlon_to_point_m(request.end.lat, request.end.lon), nodes_arr)
+    start_node, end_node = choose_snap_nodes(
+        graph=graph,
+        nodes_arr=nodes_arr,
+        start=request.start,
+        end=request.end,
+        mode=request.mode,
+    )
 
     paths_by_mode = _compute_paths(
         graph=graph,

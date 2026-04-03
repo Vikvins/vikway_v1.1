@@ -17,9 +17,39 @@ const MODE_OPTIONS = [
   { value: "balanced", label: "Сбалансированный" },
 ];
 
-function MapClickHandler({ onClick }) {
+const DEMO_SCENARIOS = [
+  {
+    value: "contrast-routes",
+    label: "Контраст маршрутов",
+    description: "Показывает контраст между кратчайшим, тихим и зеленым маршрутами",
+    mode: "green",
+    start: { lat: 59.39882, lon: 56.78425 },
+    end: { lat: 59.40616, lon: 56.80305 },
+  },
+  {
+    value: "green-showcase",
+    label: "Максимум озеленения",
+    description: "Зеленый маршрут заметно выигрывает по озеленению по сравнению с кратчайшим",
+    mode: "green",
+    start: { lat: 59.40062, lon: 56.81388 },
+    end: { lat: 59.41345, lon: 56.79043 },
+  },
+  {
+    value: "quiet-showcase",
+    label: "Тихий сценарий",
+    description: "Тихий маршрут показывает более низкий шум, чем остальные варианты",
+    mode: "quiet",
+    start: { lat: 59.3986, lon: 56.77996 },
+    end: { lat: 59.40603, lon: 56.81172 },
+  },
+];
+
+function MapClickHandler({ onClick, enabled }) {
   useMapEvents({
     click: (event) => {
+      if (!enabled) {
+        return;
+      }
       onClick(event.latlng);
     },
   });
@@ -63,26 +93,26 @@ function formatGreen(value) {
 }
 
 function ResultsCards({ routes }) {
+  if (routes.length === 0) {
+    return (
+      <p className="section-empty">
+        Постройте маршрут, чтобы сравнить варианты по длине, шуму и озеленению.
+      </p>
+    );
+  }
+
   return (
-    <>
-      {routes.length > 0 ? (
-        <div className="routes-list routes-list-sidebar">
-          {routes.map((route) => (
-            <article key={route.id} className={route.selected ? "route-card selected" : "route-card"}>
-              <h3>{route.label}</h3>
-              <p>Длина: {formatMeters(route.length_m)}</p>
-              <p>Время: {formatMinutes(route.eta_min)}</p>
-              <p>Шум: {formatNoise(route.avg_noise)}</p>
-              <p>Озеленение: {formatGreen(route.avg_green)}</p>
-            </article>
-          ))}
-        </div>
-      ) : (
-        <p className="section-empty">
-          Постройте маршрут, чтобы сравнить варианты по длине, шуму и озеленению.
-        </p>
-      )}
-    </>
+    <div className="routes-list routes-list-sidebar">
+      {routes.map((route) => (
+        <article key={route.id} className={route.selected ? "route-card selected" : "route-card"}>
+          <h3>{route.label}</h3>
+          <p>Длина: {formatMeters(route.length_m)}</p>
+          <p>Время: {formatMinutes(route.eta_min)}</p>
+          <p>Шум: {formatNoise(route.avg_noise)}</p>
+          <p>Озеленение: {formatGreen(route.avg_green)}</p>
+        </article>
+      ))}
+    </div>
   );
 }
 
@@ -155,6 +185,8 @@ export default function App() {
   const [start, setStart] = useState(null);
   const [end, setEnd] = useState(null);
   const [mode, setMode] = useState("shortest");
+  const [viewMode, setViewMode] = useState(null);
+  const [demoScenario, setDemoScenario] = useState(null);
   const [pickTarget, setPickTarget] = useState("start");
   const [includeAlternatives, setIncludeAlternatives] = useState(true);
   const [routes, setRoutes] = useState([]);
@@ -195,7 +227,16 @@ export default function App() {
     return [meta.center.lat, meta.center.lon];
   }, [meta]);
 
+  const selectedDemo = useMemo(
+    () => DEMO_SCENARIOS.find((scenario) => scenario.value === demoScenario) ?? null,
+    [demoScenario],
+  );
+
   const handleMapClick = ({ lat, lng }) => {
+    if (viewMode !== "manual") {
+      return;
+    }
+
     setError("");
     const nextPoint = { lat, lon: lng };
 
@@ -219,12 +260,7 @@ export default function App() {
     setPickTarget("start");
   };
 
-  const handleBuildRoutes = async () => {
-    if (!start || !end) {
-      setError("Выберите точки старта и финиша на карте.");
-      return;
-    }
-
+  const runRouteBuild = async ({ nextStart, nextEnd, nextMode, nextIncludeAlternatives }) => {
     if (typeof window !== "undefined") {
       pendingScrollTopRef.current = window.scrollY;
     }
@@ -233,10 +269,10 @@ export default function App() {
     setError("");
     try {
       const response = await buildRoutes({
-        start,
-        end,
-        mode,
-        include_alternatives: includeAlternatives,
+        start: nextStart,
+        end: nextEnd,
+        mode: nextMode,
+        include_alternatives: nextIncludeAlternatives,
       });
       setRoutes(response.routes ?? []);
       setSnapped({ start: response.snapped_start, end: response.snapped_end });
@@ -250,6 +286,37 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBuildRoutes = async () => {
+    if (!start || !end) {
+      setError("Выберите точки старта и финиша на карте.");
+      return;
+    }
+
+    await runRouteBuild({
+      nextStart: start,
+      nextEnd: end,
+      nextMode: mode,
+      nextIncludeAlternatives: includeAlternatives,
+    });
+  };
+
+  const handleRunDemo = async (scenario) => {
+    setViewMode("demo");
+    setDemoScenario(scenario.value);
+    setStart(scenario.start);
+    setEnd(scenario.end);
+    setMode(scenario.mode);
+    setPickTarget("start");
+    setIncludeAlternatives(true);
+
+    await runRouteBuild({
+      nextStart: scenario.start,
+      nextEnd: scenario.end,
+      nextMode: scenario.mode,
+      nextIncludeAlternatives: true,
+    });
   };
 
   const clearSelection = () => {
@@ -268,61 +335,132 @@ export default function App() {
         <h1>VikWay</h1>
         <p className="subtitle">Цифровой сервис комфортных пешеходных маршрутов</p>
 
-        <div className="control-block">
-          <label>Режим маршрута</label>
-          <select value={mode} onChange={(event) => setMode(event.target.value)}>
-            {MODE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="control-block inline">
+        <div className="entry-switch">
           <button
             type="button"
-            className={pickTarget === "start" ? "ghost active" : "ghost"}
-            onClick={() => setPickTarget("start")}
+            className={viewMode === "manual" ? "entry-card active" : "entry-card"}
+            onClick={() => setViewMode("manual")}
           >
-            Выбрать старт
+            <strong>Ручной режим</strong>
+            <span>Выбирайте точки на карте и стройте маршрут самостоятельно</span>
           </button>
+
           <button
             type="button"
-            className={pickTarget === "end" ? "ghost active" : "ghost"}
-            onClick={() => setPickTarget("end")}
+            className={viewMode === "demo" ? "entry-card active" : "entry-card"}
+            onClick={() => setViewMode("demo")}
           >
-            Выбрать финиш
+            <strong>Демо-сценарии</strong>
+            <span>Запускайте заранее подготовленные кейсы для показа сервиса</span>
           </button>
         </div>
 
-        <div className="control-block checkbox">
-          <input
-            id="alts"
-            type="checkbox"
-            checked={includeAlternatives}
-            onChange={(event) => setIncludeAlternatives(event.target.checked)}
-          />
-          <label htmlFor="alts">Показать альтернативы</label>
-        </div>
+        {viewMode === "demo" ? (
+          <>
+            <div className="section-divider" aria-hidden="true" />
+            <div className="subsection-header">
+              <h2>Выберите демо-сценарий</h2>
+              <p>Нажмите на один из готовых маршрутов, чтобы автоматически показать работу сервиса</p>
+            </div>
+            <div className="demo-scenarios">
+              {DEMO_SCENARIOS.map((scenario) => (
+                <button
+                  key={scenario.value}
+                  type="button"
+                  className={
+                    selectedDemo?.value === scenario.value
+                      ? `scenario-card active ${scenario.value}`
+                      : `scenario-card ${scenario.value}`
+                  }
+                  onClick={() => handleRunDemo(scenario)}
+                  disabled={loading}
+                >
+                  <strong>{scenario.label}</strong>
+                  <span>{scenario.description}</span>
+                </button>
+              ))}
+            </div>
 
-        <div className="control-block inline">
-          <button type="button" onClick={handleBuildRoutes} disabled={loading}>
-            {loading ? "Строю..." : "Построить маршрут"}
-          </button>
-          <button type="button" className="ghost" onClick={clearSelection}>
-            Очистить
-          </button>
-        </div>
+            <div className="points-info">
+              <p>
+                <strong>Старт:</strong>{" "}
+                {start ? `${start.lat.toFixed(5)}, ${start.lon.toFixed(5)}` : "не задан"}
+              </p>
+              <p>
+                <strong>Финиш:</strong>{" "}
+                {end ? `${end.lat.toFixed(5)}, ${end.lon.toFixed(5)}` : "не задан"}
+              </p>
+            </div>
 
-        <div className="points-info">
-          <p>
-            <strong>Старт:</strong> {start ? `${start.lat.toFixed(5)}, ${start.lon.toFixed(5)}` : "не задан"}
-          </p>
-          <p>
-            <strong>Финиш:</strong> {end ? `${end.lat.toFixed(5)}, ${end.lon.toFixed(5)}` : "не задан"}
-          </p>
-        </div>
+            <div className="control-block inline">
+              <button type="button" className="ghost" onClick={clearSelection}>
+                Очистить
+              </button>
+            </div>
+          </>
+        ) : null}
+
+        {viewMode === "manual" ? (
+          <>
+            <div className="control-block">
+              <label>Режим маршрута</label>
+              <select value={mode} onChange={(event) => setMode(event.target.value)}>
+                {MODE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="control-block inline">
+              <button
+                type="button"
+                className={pickTarget === "start" ? "ghost active" : "ghost"}
+                onClick={() => setPickTarget("start")}
+              >
+                Выбрать старт
+              </button>
+              <button
+                type="button"
+                className={pickTarget === "end" ? "ghost active" : "ghost"}
+                onClick={() => setPickTarget("end")}
+              >
+                Выбрать финиш
+              </button>
+            </div>
+
+            <div className="control-block checkbox">
+              <input
+                id="alts"
+                type="checkbox"
+                checked={includeAlternatives}
+                onChange={(event) => setIncludeAlternatives(event.target.checked)}
+              />
+              <label htmlFor="alts">Показать альтернативы</label>
+            </div>
+
+            <div className="control-block inline">
+              <button type="button" onClick={handleBuildRoutes} disabled={loading}>
+                {loading ? "Строю..." : "Построить маршрут"}
+              </button>
+              <button type="button" className="ghost" onClick={clearSelection}>
+                Очистить
+              </button>
+            </div>
+
+            <div className="points-info">
+              <p>
+                <strong>Старт:</strong>{" "}
+                {start ? `${start.lat.toFixed(5)}, ${start.lon.toFixed(5)}` : "не задан"}
+              </p>
+              <p>
+                <strong>Финиш:</strong>{" "}
+                {end ? `${end.lat.toFixed(5)}, ${end.lon.toFixed(5)}` : "не задан"}
+              </p>
+            </div>
+          </>
+        ) : null}
 
         {error && <p className="error">{error}</p>}
 
@@ -351,7 +489,7 @@ export default function App() {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
 
-              <MapClickHandler onClick={handleMapClick} />
+              <MapClickHandler onClick={handleMapClick} enabled={viewMode === "manual"} />
 
               {start && (
                 <CircleMarker center={[start.lat, start.lon]} radius={7} pathOptions={{ color: "#1565c0" }}>
