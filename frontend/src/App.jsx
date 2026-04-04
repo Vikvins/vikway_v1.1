@@ -44,6 +44,9 @@ const DEMO_SCENARIOS = [
   },
 ];
 
+const DEFAULT_MAP_CENTER = [59.4097, 56.8042];
+const DEFAULT_MAP_ZOOM = 13;
+
 function MapClickHandler({ onClick, enabled }) {
   useMapEvents({
     click: (event) => {
@@ -222,10 +225,7 @@ export default function App() {
     });
   }, [loading, routes, snapped]);
 
-  const center = useMemo(() => {
-    if (!meta) return [59.4, 56.8];
-    return [meta.center.lat, meta.center.lon];
-  }, [meta]);
+  const center = useMemo(() => DEFAULT_MAP_CENTER, []);
 
   const selectedDemo = useMemo(
     () => DEMO_SCENARIOS.find((scenario) => scenario.value === demoScenario) ?? null,
@@ -486,7 +486,7 @@ export default function App() {
             <h2>Карта маршрутов</h2>
           </div>
           <div className="map-frame">
-            <MapContainer center={center} zoom={14} className="map">
+            <MapContainer center={center} zoom={DEFAULT_MAP_ZOOM} className="map">
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
