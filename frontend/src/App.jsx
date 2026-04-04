@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import {
   CircleMarker,
@@ -11,10 +11,10 @@ import {
 import { buildRoutes, fetchMeta } from "./api";
 
 const MODE_OPTIONS = [
-  { value: "shortest", label: "РљСЂР°С‚С‡Р°Р№С€РёР№" },
-  { value: "quiet", label: "РўРёС…РёР№" },
-  { value: "green", label: "Р—РµР»РµРЅС‹Р№" },
-  { value: "balanced", label: "РЎР±Р°Р»Р°РЅСЃРёСЂРѕРІР°РЅРЅС‹Р№" },
+  { value: "shortest", label: "Кратчайший" },
+  { value: "quiet", label: "Тихий" },
+  { value: "green", label: "Зелёный" },
+  { value: "balanced", label: "Сбалансированный" },
 ];
 
 const DEMO_SCENARIOS = [
@@ -58,9 +58,9 @@ function MapClickHandler({ onClick, enabled }) {
 
 function formatMeters(lengthM) {
   if (lengthM >= 1000) {
-    return `${(lengthM / 1000).toFixed(2)} РєРј`;
+    return `${(lengthM / 1000).toFixed(2)} км`;
   }
-  return `${Math.round(lengthM)} Рј`;
+  return `${Math.round(lengthM)} м`;
 }
 
 function formatMinutes(value) {
@@ -69,24 +69,24 @@ function formatMinutes(value) {
   const minutes = totalMinutes % 60;
 
   if (hours === 0) {
-    return `${minutes} РјРёРЅ`;
+    return `${minutes} мин`;
   }
   if (minutes === 0) {
-    return `${hours} С‡`;
+    return `${hours} ч`;
   }
-  return `${hours} С‡ ${minutes} РјРёРЅ`;
+  return `${hours} ч ${minutes} мин`;
 }
 
 function formatNoise(value) {
   if (value === null || value === undefined || Number.isNaN(value)) {
-    return "РЅ/Рґ";
+    return "н/д";
   }
-  return `${value.toFixed(1)} РґР‘Рђ`;
+  return `${value.toFixed(1)} дБА`;
 }
 
 function formatGreen(value) {
   if (value === null || value === undefined || Number.isNaN(value)) {
-    return "РЅ/Рґ";
+    return "н/д";
   }
   const percent = Math.max(0, Math.min(1, value)) * 100;
   return `${percent.toFixed(2)}%`;
@@ -96,7 +96,7 @@ function ResultsCards({ routes }) {
   if (routes.length === 0) {
     return (
       <p className="section-empty">
-        РџРѕСЃС‚СЂРѕР№С‚Рµ РјР°СЂС€СЂСѓС‚, С‡С‚РѕР±С‹ СЃСЂР°РІРЅРёС‚СЊ РІР°СЂРёР°РЅС‚С‹ РїРѕ РґР»РёРЅРµ, С€СѓРјСѓ Рё РѕР·РµР»РµРЅРµРЅРёСЋ.
+        Постройте маршрут, чтобы сравнить варианты по длине, шуму и озеленению
       </p>
     );
   }
@@ -106,10 +106,10 @@ function ResultsCards({ routes }) {
       {routes.map((route) => (
         <article key={route.id} className={route.selected ? "route-card selected" : "route-card"}>
           <h3>{route.label}</h3>
-          <p>Р”Р»РёРЅР°: {formatMeters(route.length_m)}</p>
-          <p>Р’СЂРµРјСЏ: {formatMinutes(route.eta_min)}</p>
-          <p>РЁСѓРј: {formatNoise(route.avg_noise)}</p>
-          <p>РћР·РµР»РµРЅРµРЅРёРµ: {formatGreen(route.avg_green)}</p>
+          <p>Длина: {formatMeters(route.length_m)}</p>
+          <p>Время: {formatMinutes(route.eta_min)}</p>
+          <p>Шум: {formatNoise(route.avg_noise)}</p>
+          <p>Озеленение: {formatGreen(route.avg_green)}</p>
         </article>
       ))}
     </div>
@@ -120,7 +120,7 @@ function DesktopResultsSection({ routes }) {
   return (
     <>
       <div className="section-header">
-        <h2>РќР°Р№РґРµРЅРЅС‹Рµ РјР°СЂС€СЂСѓС‚С‹</h2>
+        <h2>Найденные маршруты</h2>
         {routes.length > 0 ? <span className="section-badge">{routes.length}</span> : null}
       </div>
       <ResultsCards routes={routes} />
@@ -132,11 +132,11 @@ function MobileResultsSection({ routes, expanded, onToggle }) {
   return (
     <section className="panel-section mobile-results-panel">
       <button type="button" className="mobile-results-toggle" onClick={onToggle}>
-        <span className="mobile-results-title">РќР°Р№РґРµРЅРЅС‹Рµ РјР°СЂС€СЂСѓС‚С‹</span>
+        <span className="mobile-results-title">Найденные маршруты</span>
         <span className="mobile-results-actions">
           <span className="section-badge">{routes.length}</span>
           <span className={expanded ? "mobile-chevron expanded" : "mobile-chevron"} aria-hidden="true">
-            в–ѕ
+            ▾
           </span>
         </span>
       </button>
@@ -290,7 +290,7 @@ export default function App() {
 
   const handleBuildRoutes = async () => {
     if (!start || !end) {
-      setError("Р’С‹Р±РµСЂРёС‚Рµ С‚РѕС‡РєРё СЃС‚Р°СЂС‚Р° Рё С„РёРЅРёС€Р° РЅР° РєР°СЂС‚Рµ.");
+      setError("Выберите точки старта и финиша на карте");
       return;
     }
 
@@ -346,7 +346,7 @@ export default function App() {
     <div className="app-shell">
       <aside className="sidebar">
         <h1>VikWay</h1>
-        <p className="subtitle">Р¦РёС„СЂРѕРІРѕР№ СЃРµСЂРІРёСЃ РєРѕРјС„РѕСЂС‚РЅС‹С… РїРµС€РµС…РѕРґРЅС‹С… РјР°СЂС€СЂСѓС‚РѕРІ</p>
+        <p className="subtitle">Цифровой сервис комфортных пешеходных маршрутов</p>
 
         <div className="entry-switch">
           <button
@@ -354,7 +354,7 @@ export default function App() {
             className={viewMode === "manual" ? "entry-card active" : "entry-card"}
             onClick={handleActivateManualMode}
           >
-            <strong>Р СѓС‡РЅРѕР№ СЂРµР¶РёРј</strong>
+            <strong>Ручной режим</strong>
             <span>Постройте маршрут сами — выберите нужные точки на карте</span>
           </button>
 
@@ -363,7 +363,7 @@ export default function App() {
             className={viewMode === "demo" ? "entry-card active" : "entry-card"}
             onClick={handleActivateDemoMode}
           >
-            <strong>Р”РµРјРѕ-СЃС†РµРЅР°СЂРёРё</strong>
+            <strong>Демо-сценарии</strong>
             <span>Готовые маршруты для быстрого знакомства с сервисом</span>
           </button>
         </div>
@@ -372,8 +372,8 @@ export default function App() {
           <>
             <div className="section-divider" aria-hidden="true" />
             <div className="subsection-header">
-              <h2>Р’С‹Р±РµСЂРёС‚Рµ РґРµРјРѕ-СЃС†РµРЅР°СЂРёР№</h2>
-              <p>РќР°Р¶РјРёС‚Рµ РЅР° РѕРґРёРЅ РёР· РіРѕС‚РѕРІС‹С… РјР°СЂС€СЂСѓС‚РѕРІ, С‡С‚РѕР±С‹ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё РїРѕРєР°Р·Р°С‚СЊ СЂР°Р±РѕС‚Сѓ СЃРµСЂРІРёСЃР°</p>
+              <h2>Выберите демо-сценарий</h2>
+              <p>Нажмите на один из готовых маршрутов, чтобы автоматически показать работу сервиса</p>
             </div>
             <div className="demo-scenarios">
               {DEMO_SCENARIOS.map((scenario) => (
@@ -396,18 +396,16 @@ export default function App() {
 
             <div className="points-info">
               <p>
-                <strong>РЎС‚Р°СЂС‚:</strong>{" "}
-                {start ? `${start.lat.toFixed(5)}, ${start.lon.toFixed(5)}` : "РЅРµ Р·Р°РґР°РЅ"}
+                <strong>Старт:</strong> {start ? `${start.lat.toFixed(5)}, ${start.lon.toFixed(5)}` : "не задан"}
               </p>
               <p>
-                <strong>Р¤РёРЅРёС€:</strong>{" "}
-                {end ? `${end.lat.toFixed(5)}, ${end.lon.toFixed(5)}` : "РЅРµ Р·Р°РґР°РЅ"}
+                <strong>Финиш:</strong> {end ? `${end.lat.toFixed(5)}, ${end.lon.toFixed(5)}` : "не задан"}
               </p>
             </div>
 
             <div className="control-block inline">
               <button type="button" className="ghost" onClick={clearSelection}>
-                РћС‡РёСЃС‚РёС‚СЊ
+                Очистить
               </button>
             </div>
           </>
@@ -416,7 +414,7 @@ export default function App() {
         {viewMode === "manual" ? (
           <>
             <div className="control-block">
-              <label>Р РµР¶РёРј РјР°СЂС€СЂСѓС‚Р°</label>
+              <label>Режим маршрута</label>
               <select value={mode} onChange={(event) => setMode(event.target.value)}>
                 {MODE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -432,14 +430,14 @@ export default function App() {
                 className={pickTarget === "start" ? "ghost active" : "ghost"}
                 onClick={() => setPickTarget("start")}
               >
-                Р’С‹Р±СЂР°С‚СЊ СЃС‚Р°СЂС‚
+                Выбрать старт
               </button>
               <button
                 type="button"
                 className={pickTarget === "end" ? "ghost active" : "ghost"}
                 onClick={() => setPickTarget("end")}
               >
-                Р’С‹Р±СЂР°С‚СЊ С„РёРЅРёС€
+                Выбрать финиш
               </button>
             </div>
 
@@ -450,26 +448,24 @@ export default function App() {
                 checked={includeAlternatives}
                 onChange={(event) => setIncludeAlternatives(event.target.checked)}
               />
-              <label htmlFor="alts">РџРѕРєР°Р·Р°С‚СЊ Р°Р»СЊС‚РµСЂРЅР°С‚РёРІС‹</label>
+              <label htmlFor="alts">Показать альтернативы</label>
             </div>
 
             <div className="control-block inline">
               <button type="button" onClick={handleBuildRoutes} disabled={loading}>
-                {loading ? "РЎС‚СЂРѕСЋ..." : "РџРѕСЃС‚СЂРѕРёС‚СЊ РјР°СЂС€СЂСѓС‚"}
+                {loading ? "Строю..." : "Построить маршрут"}
               </button>
               <button type="button" className="ghost" onClick={clearSelection}>
-                РћС‡РёСЃС‚РёС‚СЊ
+                Очистить
               </button>
             </div>
 
             <div className="points-info">
               <p>
-                <strong>РЎС‚Р°СЂС‚:</strong>{" "}
-                {start ? `${start.lat.toFixed(5)}, ${start.lon.toFixed(5)}` : "РЅРµ Р·Р°РґР°РЅ"}
+                <strong>Старт:</strong> {start ? `${start.lat.toFixed(5)}, ${start.lon.toFixed(5)}` : "не задан"}
               </p>
               <p>
-                <strong>Р¤РёРЅРёС€:</strong>{" "}
-                {end ? `${end.lat.toFixed(5)}, ${end.lon.toFixed(5)}` : "РЅРµ Р·Р°РґР°РЅ"}
+                <strong>Финиш:</strong> {end ? `${end.lat.toFixed(5)}, ${end.lon.toFixed(5)}` : "не задан"}
               </p>
             </div>
           </>
@@ -487,7 +483,7 @@ export default function App() {
       <main className="map-area">
         <section className="panel-section map-section">
           <div className="section-header">
-            <h2>РљР°СЂС‚Р° РјР°СЂС€СЂСѓС‚РѕРІ</h2>
+            <h2>Карта маршрутов</h2>
           </div>
           <div className="map-frame">
             <MapContainer center={center} zoom={14} className="map">
@@ -501,7 +497,7 @@ export default function App() {
               {start && (
                 <CircleMarker center={[start.lat, start.lon]} radius={7} pathOptions={{ color: "#1565c0" }}>
                   <Tooltip direction="top" offset={[0, -6]} opacity={1}>
-                    РЎС‚Р°СЂС‚
+                    Старт
                   </Tooltip>
                 </CircleMarker>
               )}
@@ -509,7 +505,7 @@ export default function App() {
               {end && (
                 <CircleMarker center={[end.lat, end.lon]} radius={7} pathOptions={{ color: "#d32f2f" }}>
                   <Tooltip direction="top" offset={[0, -6]} opacity={1}>
-                    Р¤РёРЅРёС€
+                    Финиш
                   </Tooltip>
                 </CircleMarker>
               )}
@@ -522,7 +518,7 @@ export default function App() {
                     pathOptions={{ color: "#1565c0", fillOpacity: 0.5 }}
                   >
                     <Tooltip direction="top" offset={[0, -6]} opacity={1}>
-                      РџСЂРёРІСЏР·РєР° Рє РіСЂР°С„Сѓ
+                      Привязка к графу
                     </Tooltip>
                   </CircleMarker>
                   {start && (
@@ -538,7 +534,7 @@ export default function App() {
                         dashArray: "6 8",
                       }}
                     >
-                      <Tooltip>РџСЂРёРІСЏР·РєР° СЃС‚Р°СЂС‚Р° Рє РґРѕСЂРѕР¶РЅРѕРјСѓ РіСЂР°С„Сѓ</Tooltip>
+                      <Tooltip>Привязка старта к дорожному графу</Tooltip>
                     </Polyline>
                   )}
                 </>
@@ -552,7 +548,7 @@ export default function App() {
                     pathOptions={{ color: "#d32f2f", fillOpacity: 0.5 }}
                   >
                     <Tooltip direction="top" offset={[0, -6]} opacity={1}>
-                      РџСЂРёРІСЏР·РєР° Рє РіСЂР°С„Сѓ
+                      Привязка к графу
                     </Tooltip>
                   </CircleMarker>
                   {end && (
@@ -568,7 +564,7 @@ export default function App() {
                         dashArray: "6 8",
                       }}
                     >
-                      <Tooltip>РџСЂРёРІСЏР·РєР° С„РёРЅРёС€Р° Рє РґРѕСЂРѕР¶РЅРѕРјСѓ РіСЂР°С„Сѓ</Tooltip>
+                      <Tooltip>Привязка финиша к дорожному графу</Tooltip>
                     </Polyline>
                   )}
                 </>
@@ -614,5 +610,3 @@ export default function App() {
     </div>
   );
 }
-
-
