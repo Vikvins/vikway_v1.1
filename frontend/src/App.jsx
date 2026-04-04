@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import {
   CircleMarker,
@@ -11,33 +11,33 @@ import {
 import { buildRoutes, fetchMeta } from "./api";
 
 const MODE_OPTIONS = [
-  { value: "shortest", label: "Кратчайший" },
-  { value: "quiet", label: "Тихий" },
-  { value: "green", label: "Зеленый" },
-  { value: "balanced", label: "Сбалансированный" },
+  { value: "shortest", label: "РљСЂР°С‚С‡Р°Р№С€РёР№" },
+  { value: "quiet", label: "РўРёС…РёР№" },
+  { value: "green", label: "Р—РµР»РµРЅС‹Р№" },
+  { value: "balanced", label: "РЎР±Р°Р»Р°РЅСЃРёСЂРѕРІР°РЅРЅС‹Р№" },
 ];
 
 const DEMO_SCENARIOS = [
   {
     value: "contrast-routes",
     label: "Контраст маршрутов",
-    description: "Показывает контраст между кратчайшим, тихим и зеленым маршрутами",
+    description: "Сравнение кратчайшего, тихого и зелёного маршрутов",
     mode: "green",
     start: { lat: 59.39882, lon: 56.78425 },
     end: { lat: 59.40616, lon: 56.80305 },
   },
   {
     value: "green-showcase",
-    label: "Максимум озеленения",
-    description: "Зеленый маршрут заметно выигрывает по озеленению по сравнению с кратчайшим",
+    label: "Больше зелени",
+    description: "Маршрут проходит через более зелёные и спокойные зоны города",
     mode: "green",
     start: { lat: 59.40062, lon: 56.81388 },
     end: { lat: 59.41345, lon: 56.79043 },
   },
   {
     value: "quiet-showcase",
-    label: "Тихий сценарий",
-    description: "Тихий маршрут показывает более низкий шум, чем остальные варианты",
+    label: "Меньше шума",
+    description: "Маршрут проходит по более тихим улицам с меньшим уровнем шума",
     mode: "quiet",
     start: { lat: 59.3986, lon: 56.77996 },
     end: { lat: 59.40603, lon: 56.81172 },
@@ -58,9 +58,9 @@ function MapClickHandler({ onClick, enabled }) {
 
 function formatMeters(lengthM) {
   if (lengthM >= 1000) {
-    return `${(lengthM / 1000).toFixed(2)} км`;
+    return `${(lengthM / 1000).toFixed(2)} РєРј`;
   }
-  return `${Math.round(lengthM)} м`;
+  return `${Math.round(lengthM)} Рј`;
 }
 
 function formatMinutes(value) {
@@ -69,24 +69,24 @@ function formatMinutes(value) {
   const minutes = totalMinutes % 60;
 
   if (hours === 0) {
-    return `${minutes} мин`;
+    return `${minutes} РјРёРЅ`;
   }
   if (minutes === 0) {
-    return `${hours} ч`;
+    return `${hours} С‡`;
   }
-  return `${hours} ч ${minutes} мин`;
+  return `${hours} С‡ ${minutes} РјРёРЅ`;
 }
 
 function formatNoise(value) {
   if (value === null || value === undefined || Number.isNaN(value)) {
-    return "н/д";
+    return "РЅ/Рґ";
   }
-  return `${value.toFixed(1)} дБА`;
+  return `${value.toFixed(1)} РґР‘Рђ`;
 }
 
 function formatGreen(value) {
   if (value === null || value === undefined || Number.isNaN(value)) {
-    return "н/д";
+    return "РЅ/Рґ";
   }
   const percent = Math.max(0, Math.min(1, value)) * 100;
   return `${percent.toFixed(2)}%`;
@@ -96,7 +96,7 @@ function ResultsCards({ routes }) {
   if (routes.length === 0) {
     return (
       <p className="section-empty">
-        Постройте маршрут, чтобы сравнить варианты по длине, шуму и озеленению.
+        РџРѕСЃС‚СЂРѕР№С‚Рµ РјР°СЂС€СЂСѓС‚, С‡С‚РѕР±С‹ СЃСЂР°РІРЅРёС‚СЊ РІР°СЂРёР°РЅС‚С‹ РїРѕ РґР»РёРЅРµ, С€СѓРјСѓ Рё РѕР·РµР»РµРЅРµРЅРёСЋ.
       </p>
     );
   }
@@ -106,10 +106,10 @@ function ResultsCards({ routes }) {
       {routes.map((route) => (
         <article key={route.id} className={route.selected ? "route-card selected" : "route-card"}>
           <h3>{route.label}</h3>
-          <p>Длина: {formatMeters(route.length_m)}</p>
-          <p>Время: {formatMinutes(route.eta_min)}</p>
-          <p>Шум: {formatNoise(route.avg_noise)}</p>
-          <p>Озеленение: {formatGreen(route.avg_green)}</p>
+          <p>Р”Р»РёРЅР°: {formatMeters(route.length_m)}</p>
+          <p>Р’СЂРµРјСЏ: {formatMinutes(route.eta_min)}</p>
+          <p>РЁСѓРј: {formatNoise(route.avg_noise)}</p>
+          <p>РћР·РµР»РµРЅРµРЅРёРµ: {formatGreen(route.avg_green)}</p>
         </article>
       ))}
     </div>
@@ -120,7 +120,7 @@ function DesktopResultsSection({ routes }) {
   return (
     <>
       <div className="section-header">
-        <h2>Найденные маршруты</h2>
+        <h2>РќР°Р№РґРµРЅРЅС‹Рµ РјР°СЂС€СЂСѓС‚С‹</h2>
         {routes.length > 0 ? <span className="section-badge">{routes.length}</span> : null}
       </div>
       <ResultsCards routes={routes} />
@@ -132,11 +132,11 @@ function MobileResultsSection({ routes, expanded, onToggle }) {
   return (
     <section className="panel-section mobile-results-panel">
       <button type="button" className="mobile-results-toggle" onClick={onToggle}>
-        <span className="mobile-results-title">Найденные маршруты</span>
+        <span className="mobile-results-title">РќР°Р№РґРµРЅРЅС‹Рµ РјР°СЂС€СЂСѓС‚С‹</span>
         <span className="mobile-results-actions">
           <span className="section-badge">{routes.length}</span>
           <span className={expanded ? "mobile-chevron expanded" : "mobile-chevron"} aria-hidden="true">
-            ▾
+            в–ѕ
           </span>
         </span>
       </button>
@@ -290,7 +290,7 @@ export default function App() {
 
   const handleBuildRoutes = async () => {
     if (!start || !end) {
-      setError("Выберите точки старта и финиша на карте.");
+      setError("Р’С‹Р±РµСЂРёС‚Рµ С‚РѕС‡РєРё СЃС‚Р°СЂС‚Р° Рё С„РёРЅРёС€Р° РЅР° РєР°СЂС‚Рµ.");
       return;
     }
 
@@ -339,13 +339,14 @@ export default function App() {
     setError("");
     setPickTarget("start");
     setMobileResultsExpanded(true);
+    setDemoScenario(null);
   };
 
   return (
     <div className="app-shell">
       <aside className="sidebar">
         <h1>VikWay</h1>
-        <p className="subtitle">Цифровой сервис комфортных пешеходных маршрутов</p>
+        <p className="subtitle">Р¦РёС„СЂРѕРІРѕР№ СЃРµСЂРІРёСЃ РєРѕРјС„РѕСЂС‚РЅС‹С… РїРµС€РµС…РѕРґРЅС‹С… РјР°СЂС€СЂСѓС‚РѕРІ</p>
 
         <div className="entry-switch">
           <button
@@ -353,8 +354,8 @@ export default function App() {
             className={viewMode === "manual" ? "entry-card active" : "entry-card"}
             onClick={handleActivateManualMode}
           >
-            <strong>Ручной режим</strong>
-            <span>Выбирайте точки на карте и стройте маршрут самостоятельно</span>
+            <strong>Р СѓС‡РЅРѕР№ СЂРµР¶РёРј</strong>
+            <span>Постройте маршрут сами — выберите нужные точки на карте</span>
           </button>
 
           <button
@@ -362,8 +363,8 @@ export default function App() {
             className={viewMode === "demo" ? "entry-card active" : "entry-card"}
             onClick={handleActivateDemoMode}
           >
-            <strong>Демо-сценарии</strong>
-            <span>Запускайте заранее подготовленные кейсы для показа сервиса</span>
+            <strong>Р”РµРјРѕ-СЃС†РµРЅР°СЂРёРё</strong>
+            <span>Готовые маршруты для быстрого знакомства с сервисом</span>
           </button>
         </div>
 
@@ -371,8 +372,8 @@ export default function App() {
           <>
             <div className="section-divider" aria-hidden="true" />
             <div className="subsection-header">
-              <h2>Выберите демо-сценарий</h2>
-              <p>Нажмите на один из готовых маршрутов, чтобы автоматически показать работу сервиса</p>
+              <h2>Р’С‹Р±РµСЂРёС‚Рµ РґРµРјРѕ-СЃС†РµРЅР°СЂРёР№</h2>
+              <p>РќР°Р¶РјРёС‚Рµ РЅР° РѕРґРёРЅ РёР· РіРѕС‚РѕРІС‹С… РјР°СЂС€СЂСѓС‚РѕРІ, С‡С‚РѕР±С‹ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё РїРѕРєР°Р·Р°С‚СЊ СЂР°Р±РѕС‚Сѓ СЃРµСЂРІРёСЃР°</p>
             </div>
             <div className="demo-scenarios">
               {DEMO_SCENARIOS.map((scenario) => (
@@ -395,18 +396,18 @@ export default function App() {
 
             <div className="points-info">
               <p>
-                <strong>Старт:</strong>{" "}
-                {start ? `${start.lat.toFixed(5)}, ${start.lon.toFixed(5)}` : "не задан"}
+                <strong>РЎС‚Р°СЂС‚:</strong>{" "}
+                {start ? `${start.lat.toFixed(5)}, ${start.lon.toFixed(5)}` : "РЅРµ Р·Р°РґР°РЅ"}
               </p>
               <p>
-                <strong>Финиш:</strong>{" "}
-                {end ? `${end.lat.toFixed(5)}, ${end.lon.toFixed(5)}` : "не задан"}
+                <strong>Р¤РёРЅРёС€:</strong>{" "}
+                {end ? `${end.lat.toFixed(5)}, ${end.lon.toFixed(5)}` : "РЅРµ Р·Р°РґР°РЅ"}
               </p>
             </div>
 
             <div className="control-block inline">
               <button type="button" className="ghost" onClick={clearSelection}>
-                Очистить
+                РћС‡РёСЃС‚РёС‚СЊ
               </button>
             </div>
           </>
@@ -415,7 +416,7 @@ export default function App() {
         {viewMode === "manual" ? (
           <>
             <div className="control-block">
-              <label>Режим маршрута</label>
+              <label>Р РµР¶РёРј РјР°СЂС€СЂСѓС‚Р°</label>
               <select value={mode} onChange={(event) => setMode(event.target.value)}>
                 {MODE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -431,14 +432,14 @@ export default function App() {
                 className={pickTarget === "start" ? "ghost active" : "ghost"}
                 onClick={() => setPickTarget("start")}
               >
-                Выбрать старт
+                Р’С‹Р±СЂР°С‚СЊ СЃС‚Р°СЂС‚
               </button>
               <button
                 type="button"
                 className={pickTarget === "end" ? "ghost active" : "ghost"}
                 onClick={() => setPickTarget("end")}
               >
-                Выбрать финиш
+                Р’С‹Р±СЂР°С‚СЊ С„РёРЅРёС€
               </button>
             </div>
 
@@ -449,26 +450,26 @@ export default function App() {
                 checked={includeAlternatives}
                 onChange={(event) => setIncludeAlternatives(event.target.checked)}
               />
-              <label htmlFor="alts">Показать альтернативы</label>
+              <label htmlFor="alts">РџРѕРєР°Р·Р°С‚СЊ Р°Р»СЊС‚РµСЂРЅР°С‚РёРІС‹</label>
             </div>
 
             <div className="control-block inline">
               <button type="button" onClick={handleBuildRoutes} disabled={loading}>
-                {loading ? "Строю..." : "Построить маршрут"}
+                {loading ? "РЎС‚СЂРѕСЋ..." : "РџРѕСЃС‚СЂРѕРёС‚СЊ РјР°СЂС€СЂСѓС‚"}
               </button>
               <button type="button" className="ghost" onClick={clearSelection}>
-                Очистить
+                РћС‡РёСЃС‚РёС‚СЊ
               </button>
             </div>
 
             <div className="points-info">
               <p>
-                <strong>Старт:</strong>{" "}
-                {start ? `${start.lat.toFixed(5)}, ${start.lon.toFixed(5)}` : "не задан"}
+                <strong>РЎС‚Р°СЂС‚:</strong>{" "}
+                {start ? `${start.lat.toFixed(5)}, ${start.lon.toFixed(5)}` : "РЅРµ Р·Р°РґР°РЅ"}
               </p>
               <p>
-                <strong>Финиш:</strong>{" "}
-                {end ? `${end.lat.toFixed(5)}, ${end.lon.toFixed(5)}` : "не задан"}
+                <strong>Р¤РёРЅРёС€:</strong>{" "}
+                {end ? `${end.lat.toFixed(5)}, ${end.lon.toFixed(5)}` : "РЅРµ Р·Р°РґР°РЅ"}
               </p>
             </div>
           </>
@@ -486,10 +487,10 @@ export default function App() {
       <main className="map-area">
         <section className="panel-section map-section">
           <div className="section-header">
-            <h2>Карта маршрутов</h2>
+            <h2>РљР°СЂС‚Р° РјР°СЂС€СЂСѓС‚РѕРІ</h2>
           </div>
           <div className="map-frame">
-            <MapContainer center={center} zoom={13} className="map">
+            <MapContainer center={center} zoom={14} className="map">
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -500,7 +501,7 @@ export default function App() {
               {start && (
                 <CircleMarker center={[start.lat, start.lon]} radius={7} pathOptions={{ color: "#1565c0" }}>
                   <Tooltip direction="top" offset={[0, -6]} opacity={1}>
-                    Старт
+                    РЎС‚Р°СЂС‚
                   </Tooltip>
                 </CircleMarker>
               )}
@@ -508,7 +509,7 @@ export default function App() {
               {end && (
                 <CircleMarker center={[end.lat, end.lon]} radius={7} pathOptions={{ color: "#d32f2f" }}>
                   <Tooltip direction="top" offset={[0, -6]} opacity={1}>
-                    Финиш
+                    Р¤РёРЅРёС€
                   </Tooltip>
                 </CircleMarker>
               )}
@@ -521,7 +522,7 @@ export default function App() {
                     pathOptions={{ color: "#1565c0", fillOpacity: 0.5 }}
                   >
                     <Tooltip direction="top" offset={[0, -6]} opacity={1}>
-                      Привязка к графу
+                      РџСЂРёРІСЏР·РєР° Рє РіСЂР°С„Сѓ
                     </Tooltip>
                   </CircleMarker>
                   {start && (
@@ -537,7 +538,7 @@ export default function App() {
                         dashArray: "6 8",
                       }}
                     >
-                      <Tooltip>Привязка старта к дорожному графу</Tooltip>
+                      <Tooltip>РџСЂРёРІСЏР·РєР° СЃС‚Р°СЂС‚Р° Рє РґРѕСЂРѕР¶РЅРѕРјСѓ РіСЂР°С„Сѓ</Tooltip>
                     </Polyline>
                   )}
                 </>
@@ -551,7 +552,7 @@ export default function App() {
                     pathOptions={{ color: "#d32f2f", fillOpacity: 0.5 }}
                   >
                     <Tooltip direction="top" offset={[0, -6]} opacity={1}>
-                      Привязка к графу
+                      РџСЂРёРІСЏР·РєР° Рє РіСЂР°С„Сѓ
                     </Tooltip>
                   </CircleMarker>
                   {end && (
@@ -567,7 +568,7 @@ export default function App() {
                         dashArray: "6 8",
                       }}
                     >
-                      <Tooltip>Привязка финиша к дорожному графу</Tooltip>
+                      <Tooltip>РџСЂРёРІСЏР·РєР° С„РёРЅРёС€Р° Рє РґРѕСЂРѕР¶РЅРѕРјСѓ РіСЂР°С„Сѓ</Tooltip>
                     </Polyline>
                   )}
                 </>
@@ -613,3 +614,5 @@ export default function App() {
     </div>
   );
 }
+
+

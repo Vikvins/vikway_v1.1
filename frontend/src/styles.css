@@ -37,21 +37,24 @@ body {
 
 .sidebar h1 {
   margin: 0;
-  font-size: 46px;
-  font-weight: 900;
-  letter-spacing: -0.04em;
-  line-height: 0.95;
+  font-size: 50px;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 0.98;
   color: #081827;
 }
 
 .subtitle {
   margin-top: 10px;
-  margin-bottom: 26px;
-  max-width: 14ch;
+  margin-bottom: 22px;
+  display: block;
+  width: 100%;
+  padding-bottom: 18px;
+  border-bottom: 3px solid #0b66c3;
   color: #081827;
-  font-size: 30px;
-  font-weight: 800;
-  line-height: 1.12;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.18;
   letter-spacing: -0.03em;
 }
 
@@ -449,13 +452,16 @@ button.ghost.active {
   }
 
   .sidebar h1 {
-    font-size: 38px;
+    font-size: 42px;
+    font-weight: 600;
   }
 
   .subtitle {
     margin-bottom: 18px;
-    font-size: 22px;
-    line-height: 1.15;
+    padding-bottom: 14px;
+    max-width: none;
+    font-size: 18px;
+    line-height: 1.28;
   }
 
   .control-block.inline {
