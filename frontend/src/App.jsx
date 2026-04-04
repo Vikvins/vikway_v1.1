@@ -319,6 +319,18 @@ export default function App() {
     });
   };
 
+  const handleActivateManualMode = () => {
+    clearSelection();
+    setViewMode("manual");
+    setDemoScenario(null);
+  };
+
+  const handleActivateDemoMode = () => {
+    clearSelection();
+    setViewMode("demo");
+    setDemoScenario(null);
+  };
+
   const clearSelection = () => {
     setStart(null);
     setEnd(null);
@@ -339,7 +351,7 @@ export default function App() {
           <button
             type="button"
             className={viewMode === "manual" ? "entry-card active" : "entry-card"}
-            onClick={() => setViewMode("manual")}
+            onClick={handleActivateManualMode}
           >
             <strong>Ручной режим</strong>
             <span>Выбирайте точки на карте и стройте маршрут самостоятельно</span>
@@ -348,7 +360,7 @@ export default function App() {
           <button
             type="button"
             className={viewMode === "demo" ? "entry-card active" : "entry-card"}
-            onClick={() => setViewMode("demo")}
+            onClick={handleActivateDemoMode}
           >
             <strong>Демо-сценарии</strong>
             <span>Запускайте заранее подготовленные кейсы для показа сервиса</span>
@@ -464,26 +476,20 @@ export default function App() {
 
         {error && <p className="error">{error}</p>}
 
-        <section className="sidebar-results desktop-results">
-          <DesktopResultsSection routes={routes} />
-        </section>
+        {routes.length > 0 ? (
+          <section className="sidebar-results desktop-results">
+            <DesktopResultsSection routes={routes} />
+          </section>
+        ) : null}
       </aside>
 
       <main className="map-area">
-        {isMobile ? (
-          <MobileResultsSection
-            routes={routes}
-            expanded={mobileResultsExpanded}
-            onToggle={() => setMobileResultsExpanded((value) => !value)}
-          />
-        ) : null}
-
         <section className="panel-section map-section">
           <div className="section-header">
             <h2>Карта маршрутов</h2>
           </div>
           <div className="map-frame">
-            <MapContainer center={center} zoom={12} className="map">
+            <MapContainer center={center} zoom={13} className="map">
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -596,11 +602,13 @@ export default function App() {
           </div>
         </section>
 
-        <section className="panel-section mobile-results">
-          <div className="mobile-results-inner">
-            <DesktopResultsSection routes={routes} />
-          </div>
-        </section>
+        {isMobile && routes.length > 0 ? (
+          <MobileResultsSection
+            routes={routes}
+            expanded={mobileResultsExpanded}
+            onToggle={() => setMobileResultsExpanded((value) => !value)}
+          />
+        ) : null}
       </main>
     </div>
   );
