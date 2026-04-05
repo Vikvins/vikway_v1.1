@@ -10,13 +10,6 @@ import {
 } from "react-leaflet";
 import { buildRoutes, fetchMeta } from "./api";
 
-const MODE_OPTIONS = [
-  { value: "shortest", label: "Кратчайший" },
-  { value: "quiet", label: "Тихий" },
-  { value: "green", label: "Зелёный" },
-  { value: "balanced", label: "Сбалансированный" },
-];
-
 const DEMO_SCENARIOS = [
   {
     value: "contrast-routes",
@@ -189,11 +182,9 @@ export default function App() {
   const [meta, setMeta] = useState(null);
   const [start, setStart] = useState(null);
   const [end, setEnd] = useState(null);
-  const [mode, setMode] = useState("shortest");
   const [viewMode, setViewMode] = useState(null);
   const [demoScenario, setDemoScenario] = useState(null);
   const [pickTarget, setPickTarget] = useState("start");
-  const [includeAlternatives, setIncludeAlternatives] = useState(true);
   const [routes, setRoutes] = useState([]);
   const [snapped, setSnapped] = useState({ start: null, end: null });
   const [loading, setLoading] = useState(false);
@@ -266,7 +257,7 @@ export default function App() {
     setPickTarget("start");
   };
 
-  const runRouteBuild = async ({ nextStart, nextEnd, nextMode, nextIncludeAlternatives }) => {
+  const runRouteBuild = async ({ nextStart, nextEnd, nextMode }) => {
     if (typeof window !== "undefined") {
       pendingScrollTopRef.current = window.scrollY;
     }
@@ -278,7 +269,7 @@ export default function App() {
         start: nextStart,
         end: nextEnd,
         mode: nextMode,
-        include_alternatives: nextIncludeAlternatives,
+        include_alternatives: true,
       });
       setRoutes(response.routes ?? []);
       setSnapped({ start: response.snapped_start, end: response.snapped_end });
@@ -303,8 +294,7 @@ export default function App() {
     await runRouteBuild({
       nextStart: start,
       nextEnd: end,
-      nextMode: mode,
-      nextIncludeAlternatives: includeAlternatives,
+      nextMode: "shortest",
     });
   };
 
@@ -313,15 +303,12 @@ export default function App() {
     setDemoScenario(scenario.value);
     setStart(scenario.start);
     setEnd(scenario.end);
-    setMode(scenario.mode);
     setPickTarget("start");
-    setIncludeAlternatives(true);
 
     await runRouteBuild({
       nextStart: scenario.start,
       nextEnd: scenario.end,
       nextMode: scenario.mode,
-      nextIncludeAlternatives: true,
     });
   };
 
@@ -400,15 +387,6 @@ export default function App() {
               ))}
             </div>
 
-            <div className="points-info">
-              <p>
-                <strong>Старт:</strong> {start ? `${start.lat.toFixed(5)}, ${start.lon.toFixed(5)}` : "не задан"}
-              </p>
-              <p>
-                <strong>Финиш:</strong> {end ? `${end.lat.toFixed(5)}, ${end.lon.toFixed(5)}` : "не задан"}
-              </p>
-            </div>
-
             <div className="control-block inline">
               <button type="button" className="ghost" onClick={clearSelection}>
                 Очистить
@@ -419,17 +397,6 @@ export default function App() {
 
         {viewMode === "manual" ? (
           <>
-            <div className="control-block">
-              <label>Режим маршрута</label>
-              <select value={mode} onChange={(event) => setMode(event.target.value)}>
-                {MODE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             <div className="control-block inline">
               <button
                 type="button"
@@ -447,16 +414,6 @@ export default function App() {
               </button>
             </div>
 
-            <div className="control-block checkbox">
-              <input
-                id="alts"
-                type="checkbox"
-                checked={includeAlternatives}
-                onChange={(event) => setIncludeAlternatives(event.target.checked)}
-              />
-              <label htmlFor="alts">Показать альтернативы</label>
-            </div>
-
             <div className="control-block inline">
               <button type="button" onClick={handleBuildRoutes} disabled={loading}>
                 {loading ? "Строю..." : "Построить маршрут"}
@@ -466,14 +423,6 @@ export default function App() {
               </button>
             </div>
 
-            <div className="points-info">
-              <p>
-                <strong>Старт:</strong> {start ? `${start.lat.toFixed(5)}, ${start.lon.toFixed(5)}` : "не задан"}
-              </p>
-              <p>
-                <strong>Финиш:</strong> {end ? `${end.lat.toFixed(5)}, ${end.lon.toFixed(5)}` : "не задан"}
-              </p>
-            </div>
           </>
         ) : null}
 
