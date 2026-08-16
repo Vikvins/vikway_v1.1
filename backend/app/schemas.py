@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Literal, Sequence
 
@@ -8,8 +8,8 @@ Mode = Literal["shortest", "quiet", "green", "balanced"]
 
 
 class LatLon(BaseModel):
-    lat: float
-    lon: float
+    lat: float = Field(ge=-90, le=90)
+    lon: float = Field(ge=-180, le=180)
 
 
 class RouteRequest(BaseModel):
@@ -27,9 +27,9 @@ class RouteInfo(BaseModel):
     selected: bool
     length_m: float
     eta_min: float
-    avg_noise: float | None = Field(default=None, description="Proxy metric from edge attrs")
-    avg_green: float | None = Field(default=None, description="Proxy metric from edge attrs")
-    coordinates: list[list[float]]  # [[lat, lon], ...]
+    avg_noise: float | None = Field(default=None, description="Расчётная оценка шума на рёбрах графа")
+    avg_green: float | None = Field(default=None, description="Расчётная оценка озеленения на рёбрах графа")
+    coordinates: list[list[float]]
 
 
 class RouteResponse(BaseModel):
@@ -42,6 +42,6 @@ class RouteResponse(BaseModel):
 
 class MetaResponse(BaseModel):
     center: LatLon
-    bbox: list[list[float]]  # [[south, west], [north, east]]
+    bbox: list[list[float]]
     modes: list[Mode]
     available_weight_keys: list[str]

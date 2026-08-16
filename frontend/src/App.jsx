@@ -1,185 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import L from "leaflet";
-import {
-  CircleMarker,
-  MapContainer,
-  Polyline,
-  TileLayer,
-  Tooltip,
-  useMapEvents,
-} from "react-leaflet";
-import { buildRoutes, fetchMeta } from "./api";
-
-const DEMO_SCENARIOS = [
-  {
-    value: "contrast-routes",
-    label: "Контраст маршрутов",
-    description: "Сравнение кратчайшего, тихого и зелёного маршрутов",
-    mode: "green",
-    start: { lat: 59.39882, lon: 56.78425 },
-    end: { lat: 59.40616, lon: 56.80305 },
-  },
-  {
-    value: "green-showcase",
-    label: "Больше зелени",
-    description: "Маршрут проходит через более зелёные и спокойные зоны города",
-    mode: "green",
-    start: { lat: 59.40062, lon: 56.81388 },
-    end: { lat: 59.41345, lon: 56.79043 },
-  },
-  {
-    value: "quiet-showcase",
-    label: "Меньше шума",
-    description: "Маршрут проходит по более тихим улицам с меньшим уровнем шума",
-    mode: "quiet",
-    start: { lat: 59.3986, lon: 56.77996 },
-    end: { lat: 59.40603, lon: 56.81172 },
-  },
-];
-
-const DEFAULT_MAP_CENTER = [59.4097, 56.8042];
-const DEFAULT_MAP_ZOOM = 13;
-const MOBILE_DEFAULT_MAP_CENTER = [59.4065, 56.799];
-const MOBILE_DEFAULT_MAP_ZOOM = 12.5;
-
-function MapClickHandler({ onClick, enabled }) {
-  useMapEvents({
-    click: (event) => {
-      if (!enabled) {
-        return;
-      }
-      onClick(event.latlng);
-    },
-  });
-  return null;
-}
-
-function formatMeters(lengthM) {
-  if (lengthM >= 1000) {
-    return `${(lengthM / 1000).toFixed(2)} км`;
-  }
-  return `${Math.round(lengthM)} м`;
-}
-
-function formatMinutes(value) {
-  const totalMinutes = Math.max(0, Math.round(value));
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-
-  if (hours === 0) {
-    return `${minutes} мин`;
-  }
-  if (minutes === 0) {
-    return `${hours} ч`;
-  }
-  return `${hours} ч ${minutes} мин`;
-}
-
-function formatNoise(value) {
-  if (value === null || value === undefined || Number.isNaN(value)) {
-    return "н/д";
-  }
-  return `${value.toFixed(1)} дБА`;
-}
-
-function formatGreen(value) {
-  if (value === null || value === undefined || Number.isNaN(value)) {
-    return "н/д";
-  }
-  const percent = Math.max(0, Math.min(1, value)) * 100;
-  return `${percent.toFixed(2)}%`;
-}
-
-function ResultsCards({ routes }) {
-  if (routes.length === 0) {
-    return (
-      <p className="section-empty">
-        Постройте маршрут, чтобы сравнить варианты по длине, шуму и озеленению
-      </p>
-    );
-  }
-
-  return (
-    <div className="routes-list routes-list-sidebar">
-      {routes.map((route) => (
-        <article key={route.id} className={route.selected ? "route-card selected" : "route-card"}>
-          <h3>{route.label}</h3>
-          <p>Длина: {formatMeters(route.length_m)}</p>
-          <p>Время: {formatMinutes(route.eta_min)}</p>
-          <p>Шум: {formatNoise(route.avg_noise)}</p>
-          <p>Озеленение: {formatGreen(route.avg_green)}</p>
-        </article>
-      ))}
-    </div>
-  );
-}
-
-function DesktopResultsSection({ routes }) {
-  return (
-    <>
-      <div className="section-header">
-        <h2>Найденные маршруты</h2>
-        {routes.length > 0 ? <span className="section-badge">{routes.length}</span> : null}
-      </div>
-      <ResultsCards routes={routes} />
-    </>
-  );
-}
-
-function MobileResultsSection({ routes, expanded, onToggle }) {
-  return (
-    <section className="panel-section mobile-results-panel">
-      <button type="button" className="mobile-results-toggle" onClick={onToggle}>
-        <span className="mobile-results-title">Найденные маршруты</span>
-        <span className="mobile-results-actions">
-          <span className="section-badge">{routes.length}</span>
-          <span className={expanded ? "mobile-chevron expanded" : "mobile-chevron"} aria-hidden="true">
-            ▾
-          </span>
-        </span>
-      </button>
-
-      {expanded ? (
-        <div className="mobile-results-body">
-          <ResultsCards routes={routes} />
-        </div>
-      ) : null}
-    </section>
-  );
-}
-
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(() => {
-    if (typeof window === "undefined") {
-      return false;
-    }
-    return window.matchMedia("(max-width: 720px)").matches;
-  });
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return undefined;
-    }
-
-    const media = window.matchMedia("(max-width: 720px)");
-    const onChange = (event) => setIsMobile(event.matches);
-
-    setIsMobile(media.matches);
-    media.addEventListener("change", onChange);
-    return () => media.removeEventListener("change", onChange);
-  }, []);
-
-  return isMobile;
-}
-
-function stopRouteEvent(event) {
-  if (event?.originalEvent) {
-    L.DomEvent.stop(event.originalEvent);
-  }
-}
+import { buildRoutes } from "./api";
+import { RouteMap } from "./components/RouteMap";
+import { DesktopResults, MobileResults } from "./components/RouteResults";
+import { DEMO_SCENARIOS, MAP_VIEW } from "./constants";
+import { useIsMobile } from "./hooks/useIsMobile";
 
 export default function App() {
-  const [meta, setMeta] = useState(null);
   const [start, setStart] = useState(null);
   const [end, setEnd] = useState(null);
   const [viewMode, setViewMode] = useState(null);
@@ -192,16 +18,6 @@ export default function App() {
   const [mobileResultsExpanded, setMobileResultsExpanded] = useState(true);
   const isMobile = useIsMobile();
   const pendingScrollTopRef = useRef(null);
-
-  useEffect(() => {
-    fetchMeta()
-      .then((data) => {
-        setMeta(data);
-      })
-      .catch((err) => {
-        setError(err.message);
-      });
-  }, []);
 
   useEffect(() => {
     if (loading || pendingScrollTopRef.current === null || typeof window === "undefined") {
@@ -219,10 +35,10 @@ export default function App() {
   }, [loading, routes, snapped]);
 
   const defaultCenter = useMemo(
-    () => (isMobile ? MOBILE_DEFAULT_MAP_CENTER : DEFAULT_MAP_CENTER),
+    () => (isMobile ? MAP_VIEW.mobile.center : MAP_VIEW.desktop.center),
     [isMobile],
   );
-  const defaultZoom = isMobile ? MOBILE_DEFAULT_MAP_ZOOM : DEFAULT_MAP_ZOOM;
+  const defaultZoom = isMobile ? MAP_VIEW.mobile.zoom : MAP_VIEW.desktop.zoom;
 
   const selectedDemo = useMemo(
     () => DEMO_SCENARIOS.find((scenario) => scenario.value === demoScenario) ?? null,
@@ -430,7 +246,7 @@ export default function App() {
 
         {routes.length > 0 ? (
           <section className="sidebar-results desktop-results">
-            <DesktopResultsSection routes={routes} />
+            <DesktopResults routes={routes} />
           </section>
         ) : null}
       </aside>
@@ -441,121 +257,22 @@ export default function App() {
             <h2>Карта маршрутов</h2>
           </div>
           <div className="map-frame">
-            <MapContainer center={defaultCenter} zoom={defaultZoom} zoomSnap={0.5} className="map">
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-
-              <MapClickHandler onClick={handleMapClick} enabled={viewMode === "manual"} />
-
-              {start && (
-                <CircleMarker center={[start.lat, start.lon]} radius={7} pathOptions={{ color: "#1565c0" }}>
-                  <Tooltip direction="top" offset={[0, -6]} opacity={1}>
-                    Старт
-                  </Tooltip>
-                </CircleMarker>
-              )}
-
-              {end && (
-                <CircleMarker center={[end.lat, end.lon]} radius={7} pathOptions={{ color: "#d32f2f" }}>
-                  <Tooltip direction="top" offset={[0, -6]} opacity={1}>
-                    Финиш
-                  </Tooltip>
-                </CircleMarker>
-              )}
-
-              {snapped.start && (
-                <>
-                  <CircleMarker
-                    center={[snapped.start.lat, snapped.start.lon]}
-                    radius={5}
-                    pathOptions={{ color: "#1565c0", fillOpacity: 0.5 }}
-                  >
-                    <Tooltip direction="top" offset={[0, -6]} opacity={1}>
-                      Привязка к графу
-                    </Tooltip>
-                  </CircleMarker>
-                  {start && (
-                    <Polyline
-                      positions={[
-                        [start.lat, start.lon],
-                        [snapped.start.lat, snapped.start.lon],
-                      ]}
-                      pathOptions={{
-                        color: "#1565c0",
-                        weight: 3,
-                        opacity: 0.7,
-                        dashArray: "6 8",
-                      }}
-                    >
-                      <Tooltip>Привязка старта к дорожному графу</Tooltip>
-                    </Polyline>
-                  )}
-                </>
-              )}
-
-              {snapped.end && (
-                <>
-                  <CircleMarker
-                    center={[snapped.end.lat, snapped.end.lon]}
-                    radius={5}
-                    pathOptions={{ color: "#d32f2f", fillOpacity: 0.5 }}
-                  >
-                    <Tooltip direction="top" offset={[0, -6]} opacity={1}>
-                      Привязка к графу
-                    </Tooltip>
-                  </CircleMarker>
-                  {end && (
-                    <Polyline
-                      positions={[
-                        [end.lat, end.lon],
-                        [snapped.end.lat, snapped.end.lon],
-                      ]}
-                      pathOptions={{
-                        color: "#d32f2f",
-                        weight: 3,
-                        opacity: 0.7,
-                        dashArray: "6 8",
-                      }}
-                    >
-                      <Tooltip>Привязка финиша к дорожному графу</Tooltip>
-                    </Polyline>
-                  )}
-                </>
-              )}
-
-              {routes.map((route) => (
-                <Polyline
-                  key={route.id}
-                  positions={route.coordinates}
-                  pathOptions={{
-                    color: route.color,
-                    weight: route.selected ? 6 : 4,
-                    opacity: route.selected ? 1.0 : 0.9,
-                  }}
-                  eventHandlers={{
-                    click: stopRouteEvent,
-                    mousedown: stopRouteEvent,
-                    touchstart: stopRouteEvent,
-                  }}
-                >
-                  <Tooltip
-                    permanent={isMobile}
-                    sticky={!isMobile}
-                    direction="center"
-                    className={isMobile ? "route-tooltip-mobile" : ""}
-                  >
-                    {route.label}
-                  </Tooltip>
-                </Polyline>
-              ))}
-            </MapContainer>
+            <RouteMap
+              center={defaultCenter}
+              zoom={defaultZoom}
+              start={start}
+              end={end}
+              snapped={snapped}
+              routes={routes}
+              isMobile={isMobile}
+              manualMode={viewMode === "manual"}
+              onMapClick={handleMapClick}
+            />
           </div>
         </section>
 
         {isMobile && routes.length > 0 ? (
-          <MobileResultsSection
+          <MobileResults
             routes={routes}
             expanded={mobileResultsExpanded}
             onToggle={() => setMobileResultsExpanded((value) => !value)}
